@@ -4,7 +4,7 @@
    Web App URL (see DEPLOYMENT_GUIDE.md).
    ========================================================================== */
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyD1Mv7NOJiFMBZln9rY6yblDXl_jyr7MnIIGwitG6X5W-W64jUrg7J038wacEgF9IS2A/exec";
 
 /* -------------------------------------------------------------------------
    Option data — edit freely; everything below renders itself from this.
