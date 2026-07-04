@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Intake — Consulting Docket</title>
+<meta name="description" content="A private intake for brand and venture consulting." />
+
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Fonts: Fraunces (display), Inter (body), IBM Plex Mono (utility/numerals) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#14130F',
+          paper: '#F6F4EE',
+          graphite: '#6E6A61',
+          hairline: '#DBD7CB',
+          brass: '#9C7C43',
+          'brass-dim': '#C9B98E',
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root {
+    color-scheme: light;
+  }
+  html, body {
+    background-color: #14130F;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+  ::selection {
+    background: #9C7C43;
+    color: #F6F4EE;
+  }
+
+  /* Focus visibility */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  textarea:focus-visible, [tabindex]:focus-visible, label:focus-visible {
+    outline: 2px solid #9C7C43;
+    outline-offset: 3px;
+  }
+
+  /* Step transitions */
+  .step-panel {
+    display: none;
+  }
+  .step-panel.is-active {
+    display: block;
+  }
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .step-panel.is-active { animation: stepIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  }
+
+  /* Docket numerals (signature element) */
+  .docket-mark {
+    transition: color 0.5s ease, border-color 0.5s ease;
+  }
+  .docket-thread {
+    transition: background-color 0.5s ease;
+  }
+
+  /* Custom checkbox / radio "seal" styling */
+  .seal-input { display: none; }
+  .seal-card {
+    cursor: pointer;
+    transition: border-color 0.25s ease, background-color 0.25s ease;
+  }
+  .seal-input:checked + .seal-card {
+    border-color: #9C7C43;
+    background-color: rgba(156, 124, 67, 0.06);
+  }
+  .seal-input:checked + .seal-card .seal-dot {
+    background-color: #9C7C43;
+    border-color: #9C7C43;
+  }
+  .seal-input:checked + .seal-card .seal-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .seal-input:focus-visible + .seal-card {
+    outline: 2px solid #9C7C43;
+    outline-offset: 2px;
+  }
+
+  .fork-input:checked + .fork-card {
+    border-color: #9C7C43;
+    background-color: #14130F;
+  }
+  .fork-input:checked + .fork-card .fork-title,
+  .fork-input:checked + .fork-card .fork-sub {
+    color: #F6F4EE;
+  }
+  .fork-input:checked + .fork-card .fork-num {
+    color: #C9B98E;
+  }
+
+  textarea, input[type="text"], input[type="email"], select {
+    background-color: transparent;
+  }
+
+  .underline-field {
+    border-bottom: 1px solid #DBD7CB;
+    transition: border-color 0.25s ease;
+  }
+  .underline-field:focus-within {
+    border-color: #9C7C43;
+  }
+
+  /* Loading dots */
+  @keyframes pulseDot {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+  }
+  .pulse-dot { animation: pulseDot 1.2s infinite ease-in-out; }
+  .pulse-dot:nth-child(2) { animation-delay: 0.15s; }
+  .pulse-dot:nth-child(3) { animation-delay: 0.3s; }
+</style>
+</head>
+
+<body class="min-h-screen font-body text-ink antialiased">
+
+  <div class="relative min-h-screen w-full bg-ink lg:flex">
+
+    <!-- LEFT RAIL: The Docket (signature element) -->
+    <aside class="hidden lg:flex lg:w-[16rem] xl:w-[19rem] shrink-0 flex-col justify-between px-10 py-12 border-r border-white/10">
+      <div>
+        <p class="font-mono text-[11px] tracking-[0.25em] text-brass-dim uppercase">Private Intake</p>
+        <p class="mt-2 font-display text-xl text-paper">The&nbsp;Docket</p>
+      </div>
+
+      <nav id="docket-rail" class="space-y-7" aria-label="Progress">
+        <!-- populated by JS -->
+      </nav>
+
+      <p class="font-mono text-[11px] leading-relaxed text-white/30">
+        Six entries.<br/>No entry is shared until you choose to send it.
+      </p>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 flex items-center justify-center px-5 py-14 sm:px-10 lg:px-16">
+      <div class="w-full max-w-2xl">
+
+        <!-- Mobile progress -->
+        <div class="lg:hidden mb-8">
+          <p class="font-mono text-[11px] tracking-[0.25em] text-brass-dim uppercase">Private Intake</p>
+          <div id="mobile-progress" class="mt-3 flex items-center gap-1.5" aria-label="Progress"></div>
+        </div>
+
+        <div class="bg-paper rounded-sm shadow-[0_1px_0_rgba(255,255,255,0.06)] px-6 py-10 sm:px-12 sm:py-14 min-h-[30rem] flex flex-col">
+
+          <form id="intake-form" class="flex-1 flex flex-col" novalidate>
+
+            <!-- STEP 1: Basic Data -->
+            <section class="step-panel is-active" data-step="1" aria-labelledby="step1-heading">
+              <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry I</p>
+              <h1 id="step1-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                Let's begin with who you are.
+              </h1>
+              <p class="mt-3 text-graphite">A few particulars, kept between us.</p>
+
+              <div class="mt-10 space-y-8">
+                <label class="block underline-field pb-2">
+                  <span class="block font-mono text-[11px] tracking-[0.15em] text-graphite uppercase mb-1">Full name</span>
+                  <input type="text" name="fullName" required
+                    class="w-full bg-transparent text-lg text-ink placeholder-graphite/40 focus:outline-none"
+                    placeholder="Adaeze Nwosu" />
+                </label>
+
+                <label class="block underline-field pb-2">
+                  <span class="block font-mono text-[11px] tracking-[0.15em] text-graphite uppercase mb-1">Email</span>
+                  <input type="email" name="email" required
+                    class="w-full bg-transparent text-lg text-ink placeholder-graphite/40 focus:outline-none"
+                    placeholder="you@domain.com" />
+                </label>
+
+                <label class="block underline-field pb-2">
+                  <span class="block font-mono text-[11px] tracking-[0.15em] text-graphite uppercase mb-1">Occupation</span>
+                  <input type="text" name="occupation" required
+                    class="w-full bg-transparent text-lg text-ink placeholder-graphite/40 focus:outline-none"
+                    placeholder="Founder, Creative Director, Physician…" />
+                </label>
+
+                <label class="block underline-field pb-2">
+                  <span class="block font-mono text-[11px] tracking-[0.15em] text-graphite uppercase mb-1">Industry</span>
+                  <select name="industry" required
+                    class="w-full bg-transparent text-lg text-ink focus:outline-none appearance-none">
+                    <option value="" disabled selected>Select an industry</option>
+                    <option>Fashion & Apparel</option>
+                    <option>Technology & Software</option>
+                    <option>Health & Wellness</option>
+                    <option>Finance & Investment</option>
+                    <option>Media & Entertainment</option>
+                    <option>Education</option>
+                    <option>Hospitality & Travel</option>
+                    <option>Consumer Goods</option>
+                    <option>Professional Services</option>
+                    <option>Nonprofit & Philanthropy</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <!-- STEP 2: The Fork -->
+            <section class="step-panel" data-step="2" aria-labelledby="step2-heading">
+              <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry II</p>
+              <h1 id="step2-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                What are we building?
+              </h1>
+              <p class="mt-3 text-graphite">Choose the door that fits where you stand today.</p>
+
+              <div class="mt-10 grid sm:grid-cols-2 gap-4" role="radiogroup" aria-labelledby="step2-heading">
+                <div>
+                  <input type="radio" name="path" id="path-brand" value="brand" class="seal-input fork-input" required />
+                  <label for="path-brand" class="fork-card block h-full border border-hairline rounded-sm p-6 cursor-pointer">
+                    <span class="fork-num block font-mono text-xs text-graphite">01</span>
+                    <span class="fork-title block mt-4 font-display text-xl text-ink">Build My Personal Brand</span>
+                    <span class="fork-sub block mt-2 text-sm text-graphite">Positioning, voice, and presence built around you.</span>
+                  </label>
+                </div>
+                <div>
+                  <input type="radio" name="path" id="path-venture" value="venture" class="seal-input fork-input" required />
+                  <label for="path-venture" class="fork-card block h-full border border-hairline rounded-sm p-6 cursor-pointer">
+                    <span class="fork-num block font-mono text-xs text-graphite">02</span>
+                    <span class="fork-title block mt-4 font-display text-xl text-ink">Build My Idea / Venture</span>
+                    <span class="fork-sub block mt-2 text-sm text-graphite">Structure, strategy, and readiness for something new.</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <!-- STEP 3a: Branch — Personal Brand -->
+            <section class="step-panel" data-step="3a" aria-labelledby="step3a-heading">
+              <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry III</p>
+              <h1 id="step3a-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                Where is your focus right now?
+              </h1>
+              <p class="mt-3 text-graphite">Select as many as apply.</p>
+
+              <div class="mt-8 grid sm:grid-cols-2 gap-3" id="brand-focus-group">
+                <!-- populated by JS from a shared checkbox builder -->
+              </div>
+
+              <label class="block mt-9">
+                <span class="block font-mono text-[11px] tracking-[0.15em] text-graphite uppercase mb-2">Primary obstacle</span>
+                <textarea name="brandObstacle" rows="3"
+                  class="w-full border border-hairline rounded-sm p-3 text-ink placeholder-graphite/40 focus:outline-none focus:border-brass"
+                  placeholder="What's been getting in the way?"></textarea>
+              </label>
+            </section>
+
+            <!-- STEP 3b: Branch — Idea/Venture -->
+            <section class="step-panel" data-step="3b" aria-labelledby="step3b-heading">
+              <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry III</p>
+              <h1 id="step3b-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                Where does the venture stand?
+              </h1>
+              <p class="mt-3 text-graphite">Choose the current stage.</p>
+
+              <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3" id="venture-stage-group">
+                <!-- populated by JS -->
+              </div>
+
+              <p class="mt-10 font-mono text-[11px] tracking-[0.15em] text-graphite uppercase mb-2">What does it need?</p>
+              <div class="grid sm:grid-cols-2 gap-3" id="venture-needs-group">
+                <!-- populated by JS -->
+              </div>
+            </section>
+
+            <!-- STEP 4: Service Menu -->
+            <section class="step-panel" data-step="4" aria-labelledby="step4-heading">
+              <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry IV</p>
+              <h1 id="step4-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                Where might we work together?
+              </h1>
+              <p class="mt-3 text-graphite">Select everything worth exploring — nothing here is a commitment.</p>
+
+              <div class="mt-8 grid sm:grid-cols-2 gap-3" id="services-group">
+                <!-- populated by JS -->
+              </div>
+            </section>
+
+            <!-- STEP 5: Expert Verdict -->
+            <section class="step-panel" data-step="5" aria-labelledby="step5-heading">
+              <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry V</p>
+              <h1 id="step5-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                The Expert Verdict
+              </h1>
+              <p class="mt-3 text-graphite" id="verdict-intro">A first read, before we ever speak.</p>
+
+              <div id="verdict-output" class="mt-8 space-y-6"></div>
+            </section>
+
+            <!-- STEP 6: Closing / Success -->
+            <section class="step-panel" data-step="6" aria-labelledby="step6-heading">
+              <div id="submit-pending" class="py-10 text-center">
+                <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry VI</p>
+                <h1 class="mt-2 font-display text-3xl text-ink">Filing your docket</h1>
+                <div class="mt-6 flex justify-center gap-1.5" aria-hidden="true">
+                  <span class="pulse-dot w-1.5 h-1.5 rounded-full bg-brass"></span>
+                  <span class="pulse-dot w-1.5 h-1.5 rounded-full bg-brass"></span>
+                  <span class="pulse-dot w-1.5 h-1.5 rounded-full bg-brass"></span>
+                </div>
+              </div>
+
+              <div id="submit-success" class="hidden">
+                <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry VI</p>
+                <h1 id="step6-heading" class="mt-2 font-display text-3xl sm:text-4xl leading-tight text-ink">
+                  Received, <span id="success-name">friend</span>.
+                </h1>
+                <p class="mt-3 text-graphite max-w-md">
+                  Your docket has been filed. The next open step is a conversation —
+                  choose a time below and I'll come prepared with everything you've shared.
+                </p>
+
+                <div class="mt-8 border border-hairline rounded-sm overflow-hidden">
+                  <!-- Replace YOUR-CALENDLY-LINK with your real Calendly URL -->
+                  <div class="calendly-inline-widget" data-url="https://calendly.com/YOUR-CALENDLY-LINK?hide_gdpr_banner=1&background_color=f6f4ee&text_color=14130f&primary_color=9c7c43" style="min-width:280px;height:640px;"></div>
+                </div>
+                <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+              </div>
+
+              <div id="submit-error" class="hidden">
+                <p class="font-mono text-xs tracking-[0.2em] text-graphite uppercase">Entry VI</p>
+                <h1 class="mt-2 font-display text-3xl text-ink">Something didn't file correctly.</h1>
+                <p class="mt-3 text-graphite max-w-md">
+                  Your entry wasn't saved. Please try again, or reach out directly if this continues.
+                </p>
+                <button type="button" id="retry-submit" class="mt-6 inline-flex items-center gap-2 border border-ink px-6 py-3 font-mono text-xs tracking-[0.15em] uppercase text-ink hover:bg-ink hover:text-paper transition-colors">
+                  Try again
+                </button>
+              </div>
+            </section>
+
+            <!-- Navigation -->
+            <div id="nav-row" class="mt-12 pt-6 border-t border-hairline flex items-center justify-between">
+              <button type="button" id="btn-back"
+                class="font-mono text-xs tracking-[0.15em] uppercase text-graphite hover:text-ink transition-colors disabled:opacity-0 disabled:pointer-events-none">
+                ← Back
+              </button>
+              <button type="button" id="btn-next"
+                class="inline-flex items-center gap-2 bg-ink text-paper px-7 py-3.5 rounded-sm font-mono text-xs tracking-[0.15em] uppercase hover:bg-brass transition-colors">
+                Continue
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+        <p class="mt-8 text-center lg:text-left font-mono text-[11px] text-white/25 tracking-wide">
+          Consulting practice of Scott Ehizozemeh Itepu — brand & venture strategy.
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
